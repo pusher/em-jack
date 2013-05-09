@@ -425,6 +425,15 @@ describe EMJack::Connection do
       conn.disconnected
       count.should == 1
     end
+
+    it "does not reconnect when the connection was closed intentionally" do
+      conn.stub(:reconnect) { fail }
+      connection_mock.should_receive :close_connection_after_writing
+
+      conn.disconnect
+      conn.disconnected
+      conn.connected?.should == false
+    end
   end
 
   describe 'beanstalk responses' do
