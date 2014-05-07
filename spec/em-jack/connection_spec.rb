@@ -8,12 +8,12 @@ describe EMJack::Connection do
   end
 
   let(:connection_mock) do
-    connection_mock = mock(:conn)
+    connection_mock = double(:conn)
     connection_mock
   end
 
   before(:each) do
-    EM.stub!(:connect).and_return(connection_mock)
+    EM.stub(:connect).and_return(connection_mock)
   end
 
   describe "uri connection string" do
@@ -404,11 +404,11 @@ describe EMJack::Connection do
 
       5.times { conn.disconnected }
       conn.connected
-      lambda { conn.disconnected }.should_not raise_error(EMJack::Disconnected)
+      lambda { conn.disconnected }.should_not raise_error
     end
 
     it 'handles deferrables added during the fail phase' do
-      EM.stub!(:add_timer)
+      EM.stub(:add_timer)
 
       count = 0
       blk = Proc.new do
