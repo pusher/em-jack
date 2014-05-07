@@ -362,52 +362,34 @@ module EMJack
     def received(data)
       @data << data
 
-      until @data.empty?
-        idx = @data.index(/\r\n/)
-        break if idx.nil?
+      wait = false
+      while !wait && (idx = @data.index(/\r\n/))
+        idx += 2 # Include the line terminator
+        keyword = @data[0..idx]
 
-        first = @data[0..(idx + 1)]
-        df = @deferrables.shift
-        handled, skip = false, false
         EMJack::Connection.handlers.each do |h|
-          handles, bytes = h.handles?(first)
-
+          handles, needs_body = h.handles?(keyword)
           next unless handles
-          bytes = bytes.to_i
 
-          if bytes > 0
-            # if this handler requires us to receive a body make sure we can get
-            # the full length of body. If not, we'll go around and wait for more
-            # data to be received
-            body, @data = extract_body!(bytes, @data) unless bytes <= 0
-            break if body.nil?
-          else
-            @data = @data[(@data.index(/\r\n/) + 2)..-1]
+          if needs_body
+            body_len = needs_body.to_i
+            if @data.length >= idx + body_len + 2 # Remember the line terminator
+              # Body is available
+              body = @data.slice(idx, body_len)
+              idx += body_len + 2
+            else
+              # We need to read more before we have all of the body
+              wait = true
+              break
+            end
           end
 
-          handled = h.handle(df, first, body, self)
-          break if handled
+          h.handle(@deferrables.shift, keyword, body, self)
+
+          @data = @data[idx..-1] || ""
         end
-
-        @deferrables.unshift(df) unless handled
-
-        # not handled means there wasn't enough data to process a complete response
-        break unless handled
-        next unless @data.index(/\r\n/)
-
-        @data = "" if @data.nil?
       end
     end
 
-    def extract_body!(bytes, data)
-      rem = data[(data.index(/\r\n/) + 2)..-1]
-      return [nil, data] if rem.bytesize < bytes
-
-      body = rem[0..(bytes - 1)]
-      data = rem[(bytes + 2)..-1]
-      data = "" if data.nil?
-
-      [body, data]
-    end
   end
 end
