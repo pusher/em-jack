@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe EMJack::Job do
-  let (:conn ) { mock(:conn) }
+  let (:conn) { double(:conn) }
 
   it 'converts jobid to an integer' do
     j = EMJack::Job.new(nil, "1", "body")

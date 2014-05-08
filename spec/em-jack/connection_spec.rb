@@ -8,12 +8,12 @@ describe EMJack::Connection do
   end
 
   let(:connection_mock) do
-    connection_mock = mock(:conn)
+    connection_mock = double(:conn)
     connection_mock
   end
 
   before(:each) do
-    EM.stub!(:connect).and_return(connection_mock)
+    EM.stub(:connect).and_return(connection_mock)
   end
 
   describe "uri connection string" do
@@ -404,11 +404,11 @@ describe EMJack::Connection do
 
       5.times { conn.disconnected }
       conn.connected
-      lambda { conn.disconnected }.should_not raise_error(EMJack::Disconnected)
+      lambda { conn.disconnected }.should_not raise_error
     end
 
     it 'handles deferrables added during the fail phase' do
-      EM.stub!(:add_timer)
+      EM.stub(:add_timer)
 
       count = 0
       blk = Proc.new do
@@ -576,6 +576,18 @@ HERE
 
       conn.received("RESERVED 9 #{(msg1 + msg2).length}\r\n#{msg1}#{msg2}")
       conn.received("\r\n")
+    end
+
+    it 'multiple responses with the \r\n in a separate packet' do
+      df.should_receive(:succeed).with do |stats|
+        stats['id'].should == 2
+      end
+
+      df2 = conn.add_deferrable
+      df2.should_receive(:fail).with(:deadline_soon)
+
+      conn.received("OK 142\r\n---\nid: 2\ntube: default\nstate: reserved\npri: 65536\nage: 2\ndelay: 0\nttr: 3\ntime-left: 0\nreserves: 1\ntimeouts: 0\nreleases: 0\nburies: 0\nkicks: 0\n")
+      conn.received("\r\nDEADLINE_SOON\r\n")
     end
   end
 
