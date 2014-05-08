@@ -50,6 +50,8 @@ module EMJack
         @watch_on_connect = [@tube]
         initialize_tube_state
       end
+
+      @intentionally_closed = false
     end
 
     def initialize_tube_state
@@ -272,39 +274,51 @@ module EMJack
       @connected_callback.call if @connected_callback
       @use_on_connect = nil
       @watch_on_connect = nil
+
+      @conn.close_connection_after_writing if @intentionally_closed
+    end
+
+    def disconnect
+      @intentionally_closed = true
+      @conn.close_connection_after_writing if connected?
+      @close_df = EM::DefaultDeferrable.new
     end
 
     def disconnected
       @connected = false
-      d = @deferrables.dup
+      if @intentionally_closed
+        @close_df.succeed
+      else
+        d = @deferrables.dup
 
-      ## if reconnecting, need to fail ourself to remove any callbacks
-      fail
+        ## if reconnecting, need to fail ourself to remove any callbacks
+        fail
 
-      set_deferred_status(nil)
-      d.each { |df| df.fail(:disconnected) }
+        set_deferred_status(nil)
+        d.each { |df| df.fail(:disconnected) }
 
-      if @retries >= RETRY_COUNT
-        if @disconnected_callback
-          @disconnected_callback.call
-        else
-          raise EMJack::Disconnected
+        if @retries >= RETRY_COUNT
+          if @disconnected_callback
+            @disconnected_callback.call
+          else
+            raise EMJack::Disconnected
+          end
         end
-      end
 
-      reset_tube_state
-      initialize_tube_state
-      unless @reconnect_proc
-        recon = Proc.new { @conn.reconnect(@host, @port) }
-        if @fiberized
-          @reconnect_proc = Proc.new { Fiber.new { recon.call }.resume }
-        else
-          @reconnect_proc = recon
+        reset_tube_state
+        initialize_tube_state
+        unless @reconnect_proc
+          recon = Proc.new { @conn.reconnect(@host, @port) }
+          if @fiberized
+            @reconnect_proc = Proc.new { Fiber.new { recon.call }.resume }
+          else
+            @reconnect_proc = recon
+          end
         end
-      end
 
-      @retries += 1
-      EM.add_timer(5) { @reconnect_proc.call }
+        @retries += 1
+        EM.add_timer(5) { @reconnect_proc.call }
+      end
     end
 
     def reconnect!
