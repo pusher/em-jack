@@ -387,6 +387,7 @@ module EMJack
           h.handle(@deferrables.shift, keyword, body, self)
 
           @data = @data[idx..-1] || ""
+          break
         end
       end
     end
