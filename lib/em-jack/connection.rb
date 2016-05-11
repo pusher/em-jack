@@ -27,12 +27,14 @@ module EMJack
         @port = opts[:port] || 11300
         @tube = opts[:tube]
         @retry_count = opts[:retry_count] || 5
+        @retry_delay = opts[:retry_delay] || 5
       when String
         uri = URI.parse(opts)
         @host = uri.host || 'localhost'
         @port = uri.port || 11300
         @tube = uri.path.gsub(/^\//, '') # Kill the leading /
         @retry_count = 5
+        @retry_delay = 5
       end
 
       reset_tube_state
@@ -298,7 +300,7 @@ module EMJack
         set_deferred_status(nil)
         d.each { |df| df.fail(:disconnected) }
 
-        if @retries >= @retry_count
+        if @retry_count != :forever && @retries >= @retry_count
           if @disconnected_callback
             @disconnected_callback.call
           else
@@ -318,7 +320,7 @@ module EMJack
         end
 
         @retries += 1
-        EM.add_timer(5) { @reconnect_proc.call }
+        EM.add_timer(@retry_delay) { @reconnect_proc.call }
       end
     end
 
