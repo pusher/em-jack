@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'eventmachine', ['>= 0.12.10']
 
-  s.add_development_dependency 'bundler', ['~> 1.3.5']
+  s.add_development_dependency 'bundler', ['>= 1.3.5']
   s.add_development_dependency 'rake',    ['>= 0.8.7']
   s.add_development_dependency 'rspec',   ['~> 2.6']
 

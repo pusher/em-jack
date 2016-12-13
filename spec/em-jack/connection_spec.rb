@@ -392,7 +392,7 @@ describe EMJack::Connection do
       conn.disconnected
     end
 
-    it 'raises exception if it fails more then RETRY_COUNT times' do
+    it 'raises exception if it fails more then max_retries times' do
       EM.should_receive(:add_timer).exactly(5).times
 
       5.times { conn.disconnected }
