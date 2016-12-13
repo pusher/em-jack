@@ -337,7 +337,7 @@ module EMJack
         df.errback { |err| @error_callback.call(err) }
       end
 
-      df.callback &blk if block_given?
+      df.callback(&blk) if block_given?
 
       @deferrables.push(df)
       df
