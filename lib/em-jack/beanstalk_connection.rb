@@ -13,10 +13,8 @@ module EMJack
     end
 
     def send(command, *args)
-      cmd = command.to_s
-      cmd << " #{args.join(" ")}" unless args.length == 0
-      cmd << "\r\n"
-      send_data(cmd)
+      argss = args.empty? ? "" : " #{args.join(" ")}"
+      send_data("#{command.to_s}#{argss}\r\n")
     end
 
     def send_with_data(command, data, *args)
