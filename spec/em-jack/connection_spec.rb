@@ -440,7 +440,7 @@ describe EMJack::Connection do
       connection_mock.should_receive :close_connection
       connection_mock.should_receive :reconnect
 
-      conn.force_reconnect
+      conn.reconnect!
       conn.disconnected
       conn.connected?.should == false
     end
