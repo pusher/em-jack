@@ -434,6 +434,16 @@ describe EMJack::Connection do
       conn.disconnected
       conn.connected?.should == false
     end
+
+    it "closes connection immediately and reconnects on force_reconnect" do
+      EM.should_receive(:add_timer).exactly(1).times.and_yield
+      connection_mock.should_receive :close_connection
+      connection_mock.should_receive :reconnect
+
+      conn.force_reconnect
+      conn.disconnected
+      conn.connected?.should == false
+    end
   end
 
   describe 'beanstalk responses' do

@@ -284,6 +284,11 @@ module EMJack
       @close_df = EM::DefaultDeferrable.new
     end
 
+    def force_reconnect
+      @intentionally_closed = false
+      @conn.close_connection if connected?
+    end
+
     def disconnected
       @connected = false
       if @intentionally_closed
