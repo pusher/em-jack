@@ -51,7 +51,7 @@ module EMJack
         initialize_tube_state
       end
 
-      @intentionally_closed = false
+      @desired_state = :connected
     end
 
     def initialize_tube_state
@@ -275,18 +275,20 @@ module EMJack
       @use_on_connect = nil
       @watch_on_connect = nil
 
-      @conn.close_connection_after_writing if @intentionally_closed
+      if @desired_state == :disconnected
+        @conn.close_connection_after_writing
+      end
     end
 
     def disconnect
-      @intentionally_closed = true
+      @desired_state = :disconnected
       @conn.close_connection_after_writing if connected?
       @close_df = EM::DefaultDeferrable.new
     end
 
     def disconnected
       @connected = false
-      if @intentionally_closed
+      if @desired_state == :disconnected
         @close_df.succeed
       else
         d = @deferrables.dup
@@ -322,13 +324,10 @@ module EMJack
     end
 
     def reconnect!
-      @retries = 0
-
-      reset_tube_state
-      EM.next_tick do
-        @conn.reconnect(@host, @port)
-        initialize_tube_state
-      end
+      # In order to force a reconnection, the connection is closed, but
+      # @desired_state is not changed to :disconnected, so reconnect logic will
+      # be called in the disconnected handler
+      @conn.close_connection if connected?
     end
 
     def add_deferrable(&blk)
